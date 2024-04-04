@@ -50,8 +50,11 @@ while capture.isOpened():
     point_left_eye_left= []
     point_left_eye_top = []
 
-    point_right_eye_iris_center = [0, 0]
-    point_left_eye_iris_center = [0, 0]
+    point_right_eye_iris_center = []
+    point_left_eye_iris_center = []
+
+    face_2d = []
+    face_3d = []
 
     # 4.3 - Get the landmark coordinates
 
@@ -137,6 +140,8 @@ while capture.isOpened():
                         nose_3d = (landmark.x * frame_width, landmark.y * frame_height, landmark.z * 3000)
 
                     x, y = int(landmark.x * frame_width), int(landmark.y * frame_height)
+                    face_2d.append((x, y))
+                    face_3d.append((x, y, landmark.z * 3000))
 
                 #LEFT_IRIS = [473, 474, 475, 476, 477]
                 if index == 473 or index == 362 or index == 374 or index == 263 or index == 386: # iris points
@@ -177,8 +182,7 @@ while capture.isOpened():
             #print("right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)))
             #cv2.putText(frame, "Right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)), (200, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) 
 
-            
-
+            # 4.5 - Calculate the EAR
             right_eye_EAR = r_eye_height / r_eye_width 
             left_eye_EAR = l_eye_height / l_eye_width
             EAR = (right_eye_EAR + left_eye_EAR) / 2
