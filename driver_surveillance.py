@@ -20,14 +20,6 @@ EAR_calibration_data_eyes_open = []
 EAR_calibration_data_eyes_closed = []
 threshold_EAR = 0
 
-left_eye_gaze_baseline_data = []
-right_eye_gaze_baseline_data = []
-face_angle_baseline_data = []
-
-left_eye_gaze_baseline = 0
-right_eye_gaze_baseline = 0
-face_angle_baseline = [0, 0, 0]
-
 capture = cv2.VideoCapture(0)
 
 while capture.isOpened():
@@ -46,7 +38,6 @@ while capture.isOpened():
     frame.flags.writeable = True
 
     frame_height, frame_width, frame_channels = frame.shape
-    print(frame_height, frame_width, frame_channels)
 
     # The camera matrix
     focal_length = 1 * frame_width
@@ -181,60 +172,66 @@ while capture.isOpened():
             right_eye_2d = np.array(right_eye_2d, dtype=np.float64)
             right_eye_3d = np.array(right_eye_3d, dtype=np.float64)
 
-            
 
             # Solve PnP
             success, rotation_vector, translation_vector = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
-            
             rotation_matrix, jacobian = cv2.Rodrigues(rotation_vector)
-
             euler_angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rotation_matrix)
 
-            face_pitch = euler_angles[0] * 180 / np.pi
-            face_yaw = -euler_angles[1] * 1800
-            face_roll = 180 + (np.arctan2(point_right_eye_right[1] - point_left_eye_left[1], point_right_eye_right[0] - point_left_eye_left[0]) * 180 / np.pi)
-
-            if face_roll > 180:
-                face_roll = face_roll - 360
-
-            l_eye_width = point_left_eye_left[0] - point_left_eye_right[0]
-            l_eye_height = point_left_eye_bottom[1] - point_left_eye_top[1]
-            l_eye_center = [(point_left_eye_left[0] + point_left_eye_right[0])/2 ,(point_left_eye_bottom[1] + point_left_eye_top[1])/2]
-
-            r_eye_width = point_right_eye_left[0] - point_right_eye_right[0]
-            r_eye_height = point_right_eye_bottom[1] - point_right_eye_top[1]
-            r_eye_center = [(point_right_eye_left[0] + point_right_eye_right[0])/2 ,(point_right_eye_bottom[1] + point_right_eye_top[1])/2]
-
-            print(point_left_eye_iris_center[0] - l_eye_center[0])
-
-            #yaw_left_eye = 
-            #yaw_right_eye = 
+            face_pitch = np.rad2deg(euler_angles[0])
+            face_yaw = -np.rad2deg(euler_angles[1])
 
 
-            #print("Left eye angle: ", yaw_left_eye)
-            #print("Right eye angle: ", yaw_right_eye)
+            left_eye_width = point_left_eye_left[0] - point_left_eye_right[0]
+            left_eye_height = point_left_eye_bottom[1] - point_left_eye_top[1]
+            left_eye_center = [(point_left_eye_left[0] + point_left_eye_right[0])/2 ,(point_left_eye_bottom[1] + point_left_eye_top[1])/2]
+
+            right_eye_width = point_right_eye_left[0] - point_right_eye_right[0]
+            right_eye_height = point_right_eye_bottom[1] - point_right_eye_top[1]
+            right_eye_center = [(point_right_eye_left[0] + point_right_eye_right[0])/2 ,(point_right_eye_bottom[1] + point_right_eye_top[1])/2]
+
+            right_eye_gaze_vector = np.array([point_right_eye_iris_center[0] - right_eye_center[0], point_right_eye_iris_center[1] - right_eye_center[1]])
+            left_eye_gaze_vector = np.array([point_left_eye_iris_center[0] - left_eye_center[0], point_left_eye_iris_center[1] - left_eye_center[1]])
+
+            if right_eye_height < 0:
+                pitch_right_eye = (right_eye_gaze_vector[1] / (right_eye_height/2)) * 30
+            else:
+                pitch_right_eye = (right_eye_gaze_vector[1] / (right_eye_height/2)) * 45
+            yaw_right_eye = (right_eye_gaze_vector[0] / (right_eye_width / 2)) * 45
+
+            if left_eye_gaze_vector[1] < 0:
+                pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 30
+            else:
+                pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 45
+            yaw_left_eye = (left_eye_gaze_vector[0] / (left_eye_width / 2)) * 45
+
+            print(face_pitch, face_yaw)
+
+            if abs(np.mean([pitch_right_eye, pitch_left_eye]) + face_pitch) > 30 or abs(np.mean([yaw_right_eye, yaw_left_eye]) + face_yaw) > 30:
+                cv2.putText(frame, "DISTRACTED", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
+                
 
 
             # 4.4. - Draw the positions on the frame
 
-            #cv2.circle(frame, (int(l_eye_center[0]), int(l_eye_center[1])), radius=int(horizontal_threshold * l_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
+            cv2.line(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), (int(left_eye_center[0]), int(left_eye_center[1])), (0, 255, 0), 2)
+
+            #cv2.circle(frame, (int(left_eye_center[0]), int(left_eye_center[1])), radius=int(horizontal_threshold * l_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
             cv2.circle(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), radius=3, color=(0, 255, 0), thickness=-1) # Center of iris
-            cv2.circle(frame, (int(l_eye_center[0]), int(l_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
+            cv2.circle(frame, (int(left_eye_center[0]), int(left_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
             #print("Left eye: x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)))
             #cv2.putText(frame, "Left eye:  x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)), (200, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2) 
 
-            
-
-            #cv2.circle(frame, (int(r_eye_center[0]), int(r_eye_center[1])), radius=int(horizontal_threshold * r_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
+            #cv2.circle(frame, (int(right_eye_center[0]), int(right_eye_center[1])), radius=int(horizontal_threshold * r_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
             
             cv2.circle(frame, (int(point_right_eye_iris_center[0]), int(point_right_eye_iris_center[1])), radius=3, color=(0, 0, 255), thickness=-1) # Center of iris
-            cv2.circle(frame, (int(r_eye_center[0]), int(r_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
+            cv2.circle(frame, (int(right_eye_center[0]), int(right_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
             #print("right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)))
             #cv2.putText(frame, "Right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)), (200, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) 
 
             # 4.5 - Calculate the EAR
-            right_eye_EAR = r_eye_height / r_eye_width 
-            left_eye_EAR = l_eye_height / l_eye_width
+            right_eye_EAR = right_eye_height / right_eye_width 
+            left_eye_EAR = left_eye_height / left_eye_width
             EAR = (right_eye_EAR + left_eye_EAR) / 2
             
             if time_elapsed < 3:
