@@ -14,10 +14,19 @@ mp_drawing = mp.solutions.drawing_utils
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
 frames = []
+time_elapsed = 0
+
 EAR_calibration_data_eyes_open = []
 EAR_calibration_data_eyes_closed = []
 threshold_EAR = 0
-time_elapsed = 0
+
+left_eye_gaze_baseline_data = []
+right_eye_gaze_baseline_data = []
+face_angle_baseline_data = []
+
+left_eye_gaze_baseline = 0
+right_eye_gaze_baseline = 0
+face_angle_baseline = [0, 0, 0]
 
 capture = cv2.VideoCapture(0)
 
@@ -37,6 +46,7 @@ while capture.isOpened():
     frame.flags.writeable = True
 
     frame_height, frame_width, frame_channels = frame.shape
+    print(frame_height, frame_width, frame_channels)
 
     # The camera matrix
     focal_length = 1 * frame_width
@@ -47,7 +57,7 @@ while capture.isOpened():
     dist_matrix = np.zeros((4, 1), dtype=np.float64)
 
     # Eye Gaze (Iris Tracking)
-    
+
     # Left eye indices list
     #LEFT_EYE =[ 362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385,384, 398 ]
     # Right eye indices list
@@ -162,28 +172,6 @@ while capture.isOpened():
                     x, y = int(landmark.x * frame_width), int(landmark.y * frame_height)
                     face_2d.append((x, y))
                     face_3d.append((x, y, landmark.z * 3000))
-
-                #LEFT_IRIS = [473, 474, 475, 476, 477]
-                if index == 473 or index == 362 or index == 374 or index == 263 or index == 386: # iris points
-                #if index == 473 or index == 474 or index == 475 or index == 476 or index == 477: # eye border
-                    if index == 473:
-                        left_pupil_2d = (landmark.x * frame_width, landmark.y * frame_height)
-                        left_pupil_3d = (landmark.x * frame_width, landmark.y * frame_height, landmark.z * 3000)
-
-                    x, y = int(landmark.x * frame_width), int(landmark.y * frame_height)
-                    left_eye_2d.append((x, y))
-                    left_eye_3d.append((x, y, landmark.z * 3000))
-
-                #RIGHT_IRIS = [468, 469, 470, 471, 472]
-                if index == 468 or index == 33 or index == 145 or index == 133 or index == 159: # iris points
-                # if index == 468 or index == 469 or index == 470 or index == 471 or index == 472: # eye border
-                    if index == 468:
-                        right_pupil_2d = (landmark.x * frame_width, landmark.y * frame_height)
-                        right_pupil_3d = (landmark.x * frame_width, landmark.y * frame_height, landmark.z * 3000)
-
-                    x, y = int(landmark.x * frame_width), int(landmark.y * frame_height)
-                    right_eye_2d.append((x, y))
-                    right_eye_3d.append((x, y, landmark.z * 3000))
                     
 
             face_2d = np.array(face_2d, dtype=np.float64)
@@ -193,47 +181,41 @@ while capture.isOpened():
             right_eye_2d = np.array(right_eye_2d, dtype=np.float64)
             right_eye_3d = np.array(right_eye_3d, dtype=np.float64)
 
+            
+
             # Solve PnP
             success, rotation_vector, translation_vector = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
-            success_left_eye, rotation_vector_left_eye, translation_vector_left_eye = cv2.solvePnP(left_eye_3d, left_eye_2d, cam_matrix, dist_matrix)
-            success_right_eye, rotation_vector_right_eye, translation_vector_right_eye = cv2.solvePnP(right_eye_3d, right_eye_2d, cam_matrix, dist_matrix)
             
             rotation_matrix, jacobian = cv2.Rodrigues(rotation_vector)
-            rotation_matrix_left_eye, jacobian_left_eye = cv2.Rodrigues(rotation_vector_left_eye)
-            rotation_matrix_right_eye, jacobian_right_eye = cv2.Rodrigues(rotation_vector_right_eye)
 
             euler_angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rotation_matrix)
-            euler_angles_left_eye, mtxR_left_eye, mtxQ_left_eye, Qx_left_eye, Qy_left_eye, Qz_left_eye = cv2.RQDecomp3x3(rotation_matrix_left_eye)
-            euler_angles_right_eye, mtxR_right_eye, mtxQ_right_eye, Qx_right_eye, Qy_right_eye, Qz_right_eye = cv2.RQDecomp3x3(rotation_matrix_right_eye)
 
-            pitch = euler_angles[0] * 180 / np.pi
-            yaw = -euler_angles[1] * 1800
-            roll = 180 + (np.arctan2(point_right_eye_right[1] - point_left_eye_left[1], point_right_eye_right[0] - point_left_eye_left[0]) * 180 / np.pi)
+            face_pitch = euler_angles[0] * 180 / np.pi
+            face_yaw = -euler_angles[1] * 1800
+            face_roll = 180 + (np.arctan2(point_right_eye_right[1] - point_left_eye_left[1], point_right_eye_right[0] - point_left_eye_left[0]) * 180 / np.pi)
 
-            if roll > 180:
-                roll = roll - 360
+            if face_roll > 180:
+                face_roll = face_roll - 360
 
-            pitch_left_eye = euler_angles_left_eye[0] * 1800
-            yaw_left_eye = euler_angles_left_eye[1] * 1800
-            pitch_right_eye = euler_angles_right_eye[0] * 1800
-            yaw_right_eye = euler_angles_right_eye[1] * 1800
-
-            print("Pitch: ", pitch)
-            # print("Yaw: ", yaw)
-            # print("Roll: ", roll)
-            # print("Pitch left eye: ", pitch_left_eye)
-            # print("Yaw left eye: ", yaw_left_eye)
-            # print("Pitch right eye: ", pitch_right_eye)
-            # print("Yaw right eye: ", yaw_right_eye)
-
-            # if abs(pitch + pitch_left_eye + pitch_right_eye) + abs(yaw + yaw_left_eye + yaw_right_eye) > 30:
-            #     cv2.putText(frame, "DISTRACTED", (150, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
-                
-
-            # 4.4. - Draw the positions on the frame
             l_eye_width = point_left_eye_left[0] - point_left_eye_right[0]
             l_eye_height = point_left_eye_bottom[1] - point_left_eye_top[1]
             l_eye_center = [(point_left_eye_left[0] + point_left_eye_right[0])/2 ,(point_left_eye_bottom[1] + point_left_eye_top[1])/2]
+
+            r_eye_width = point_right_eye_left[0] - point_right_eye_right[0]
+            r_eye_height = point_right_eye_bottom[1] - point_right_eye_top[1]
+            r_eye_center = [(point_right_eye_left[0] + point_right_eye_right[0])/2 ,(point_right_eye_bottom[1] + point_right_eye_top[1])/2]
+
+            print(point_left_eye_iris_center[0] - l_eye_center[0])
+
+            #yaw_left_eye = 
+            #yaw_right_eye = 
+
+
+            #print("Left eye angle: ", yaw_left_eye)
+            #print("Right eye angle: ", yaw_right_eye)
+
+
+            # 4.4. - Draw the positions on the frame
 
             #cv2.circle(frame, (int(l_eye_center[0]), int(l_eye_center[1])), radius=int(horizontal_threshold * l_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
             cv2.circle(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), radius=3, color=(0, 255, 0), thickness=-1) # Center of iris
@@ -241,9 +223,7 @@ while capture.isOpened():
             #print("Left eye: x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)))
             #cv2.putText(frame, "Left eye:  x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)), (200, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2) 
 
-            r_eye_width = point_right_eye_left[0] - point_right_eye_right[0]
-            r_eye_height = point_right_eye_bottom[1] - point_right_eye_top[1]
-            r_eye_center = [(point_right_eye_left[0] + point_right_eye_right[0])/2 ,(point_right_eye_bottom[1] + point_right_eye_top[1])/2]
+            
 
             #cv2.circle(frame, (int(r_eye_center[0]), int(r_eye_center[1])), radius=int(horizontal_threshold * r_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
             
@@ -257,26 +237,32 @@ while capture.isOpened():
             left_eye_EAR = l_eye_height / l_eye_width
             EAR = (right_eye_EAR + left_eye_EAR) / 2
             
-            #if time_elapsed < 3:
-            #    cv2.putText(frame, "Calibrating EAR baseline", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            #    cv2.putText(frame, "Please keep your eyes open", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            #    EAR_calibration_data_eyes_open.append(EAR)
-            #    baseline_eyes_open = np.mean(EAR_calibration_data_eyes_open)
-            #elif time_elapsed > 3 and time_elapsed < 6:
-            #    cv2.putText(frame, "Calibrating EAR baseline", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            #    cv2.putText(frame, "Please keep your eyes closed", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            #    EAR_calibration_data_eyes_closed.append(EAR)
-            #    baseline_eyes_closed = np.mean(EAR_calibration_data_eyes_closed)
+            if time_elapsed < 3:
+                cv2.putText(frame, "Calibrating ", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, "Eyes open and head forward", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                EAR_calibration_data_eyes_open.append(EAR)
+                #left_eye_gaze_baseline_data.append(_left_eye)
+                #right_eye_gaze_baseline_data.append(angle_right_eye)
+                #face_angle_baseline_data.append([pitch, yaw, roll])
+                baseline_eyes_open = np.mean(EAR_calibration_data_eyes_open)
+            elif time_elapsed > 3 and time_elapsed < 6:
+                cv2.putText(frame, "Calibrating EAR baseline", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                cv2.putText(frame, "Eyes closed", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                EAR_calibration_data_eyes_closed.append(EAR)
+                baseline_eyes_closed = np.mean(EAR_calibration_data_eyes_closed)
 
-            #    threshold_EAR = baseline_eyes_open - (baseline_eyes_open - baseline_eyes_closed) * 0.8
+                threshold_EAR = baseline_eyes_open - (baseline_eyes_open - baseline_eyes_closed) * 0.8
+                #left_eye_gaze_baseline = np.mean(left_eye_gaze_baseline_data)
+                #right_eye_gaze_baseline = np.mean(right_eye_gaze_baseline_data)
+                #face_angle_baseline = [np.mean(face_angle_baseline_data[i]) for i in range(3)]
 
-            #else:
-            #    if EAR < threshold_EAR: # eyes are 80% closed
-            #        frames.append(1)
-            #    else:
-            #        frames.append(0)
+            else:
+                if EAR < threshold_EAR: # eyes are 80% closed
+                    frames.append(1)
+                else:
+                    frames.append(0)
 
-            # speed reduction (comment out for full speed)
+         #   speed reduction (comment out for full speed)
 
             time.sleep(1/25) # [s]
 
