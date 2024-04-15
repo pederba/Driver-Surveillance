@@ -26,19 +26,18 @@ face_angle_baseline = []
 
 capture = cv2.VideoCapture(0)
 
+start_capture = time.time()
+
 while capture.isOpened():
     success, frame = capture.read()
     start = time.time()
-    
 
     if not success:
         print("Capture failed")
         break
 
     frame.flags.writeable = False
-
     results = face_mesh.process(frame)
-
     frame.flags.writeable = True
 
     frame_height, frame_width, frame_channels = frame.shape
@@ -51,14 +50,6 @@ while capture.isOpened():
     # The distorsion parameters
     dist_matrix = np.zeros((4, 1), dtype=np.float64)
 
-    # Eye Gaze (Iris Tracking)
-
-    # Left eye indices list
-    #LEFT_EYE =[ 362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385,384, 398 ]
-    # Right eye indices list
-    #RIGHT_EYE=[ 33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161 , 246 ]
-    #LEFT_IRIS = [473, 474, 475, 476, 477]
-    #RIGHT_IRIS = [468, 469, 470, 471, 472]
 
     point_right_eye_right = []
     point_right_eye_bottom = [] 
@@ -117,44 +108,11 @@ while capture.isOpened():
                     cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 0, 255), thickness=-1)
 
                 if index == 468:
-                    point_right_eye_iris_center = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(255, 255, 0), thickness=-1)                    
-
-                if index == 469:
-                    point_469 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 255, 0), thickness=-1)
-
-                if index == 470:
-                    point_470 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 255, 0), thickness=-1)
-
-                if index == 471:
-                    point_471 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 255, 0), thickness=-1)
-
-                if index == 472:
-                    point_472 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 255, 0), thickness=-1)
+                    point_right_eye_iris_center = (landmark.x * frame_width, landmark.y * frame_height)                    
 
                 if index == 473:
                     point_left_eye_iris_center = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(0, 255, 255), thickness=-1)
 
-                if index == 474:
-                    point_474 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(255, 0, 0), thickness=-1)
-
-                if index == 475:
-                    point_475 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(255, 0, 0), thickness=-1)
-
-                if index == 476:
-                    point_476 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(255, 0, 0), thickness=-1)
-
-                if index == 477:
-                    point_477 = (landmark.x * frame_width, landmark.y * frame_height)
-                    #cv2.circle(frame, (int(landmark.x * frame_width), int(landmark.y * frame_height)), radius=5, color=(255, 0, 0), thickness=-1)
 
                 if index == 33 or index == 263 or index == 1 or index == 61 or index == 291 or index == 199:
 
@@ -209,20 +167,11 @@ while capture.isOpened():
             p2 = (int(nose_2d[0] + face_yaw * 10), int(nose_2d[1] - face_pitch * 10))
             cv2.line(frame, p1, p2, (255, 0, 0), 3)
 
-            cv2.line(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), (int(left_eye_center[0]), int(left_eye_center[1])), (0, 255, 0), 2)
-
-            #cv2.circle(frame, (int(left_eye_center[0]), int(left_eye_center[1])), radius=int(horizontal_threshold * l_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
             cv2.circle(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), radius=3, color=(0, 255, 0), thickness=-1) # Center of iris
-            cv2.circle(frame, (int(left_eye_center[0]), int(left_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
-            #print("Left eye: x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)))
-            #cv2.putText(frame, "Left eye:  x = " + str(np.round(point_left_eye_iris_center[0],0)) + " , y = " + str(np.round(point_left_eye_iris_center[1],0)), (200, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2) 
-
-            #cv2.circle(frame, (int(right_eye_center[0]), int(right_eye_center[1])), radius=int(horizontal_threshold * r_eye_width), color=(255, 0, 0), thickness=-1) #center of eye and its radius 
+            cv2.circle(frame, (int(left_eye_center[0]), int(left_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1)
             
             cv2.circle(frame, (int(point_right_eye_iris_center[0]), int(point_right_eye_iris_center[1])), radius=3, color=(0, 0, 255), thickness=-1) # Center of iris
-            cv2.circle(frame, (int(right_eye_center[0]), int(right_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye
-            #print("right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)))
-            #cv2.putText(frame, "Right eye: x = " + str(np.round(point_right_eye_iris_center[0],0)) + " , y = " + str(np.round(point_right_eye_iris_center[1],0)), (200, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2) 
+            cv2.circle(frame, (int(right_eye_center[0]), int(right_eye_center[1])), radius=2, color=(128, 128, 128), thickness=-1) # Center of eye 
 
             # 4.5 - Calculate the EAR
             right_eye_EAR = right_eye_height / right_eye_width 
@@ -258,16 +207,13 @@ while capture.isOpened():
                 if abs(np.mean([pitch_right_eye, pitch_left_eye]) + (face_pitch - face_pitch_baseline)) > 30 or abs(np.mean([yaw_right_eye, yaw_left_eye]) + (face_yaw - face_yaw_baseline)) > 30:
                     cv2.putText(frame, "DISTRACTED", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
 
-            #print("Face pitch: ", face_pitch - face_pitch_baseline)
-            print("Face yaw: ", face_yaw - face_yaw_baseline)
-
-         #   speed reduction (comment out for full speed)
-
+            # speed reduction (comment out for full speed
+            # PERCLOS works best with lower framerate
             time.sleep(1/25) # [s]
 
         end = time.time()
         total_time = end-start
-        time_elapsed += total_time
+        time_elapsed = time.time() - start_capture
 
         if total_time>0:
             fps = 1 / total_time
