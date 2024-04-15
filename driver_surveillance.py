@@ -73,12 +73,10 @@ while capture.isOpened():
     point_right_eye_iris_center = []
     point_left_eye_iris_center = []
 
-    right_eye_2d = []
-    right_eye_3d = []
-    left_eye_2d = []
-    left_eye_3d = []
     face_2d = []
     face_3d = []
+    prev_face_pitch = 0
+    prev_face_yaw = 0
 
     # 4.3 - Get the landmark coordinates
 
@@ -166,16 +164,11 @@ while capture.isOpened():
 
                     x, y = int(landmark.x * frame_width), int(landmark.y * frame_height)
                     face_2d.append((x, y))
-                    face_3d.append((x, y, landmark.z * 3000))
+                    face_3d.append((x, y, landmark.z))
                     
 
             face_2d = np.array(face_2d, dtype=np.float64)
             face_3d = np.array(face_3d, dtype=np.float64)
-            left_eye_2d = np.array(left_eye_2d, dtype=np.float64)
-            left_eye_3d = np.array(left_eye_3d, dtype=np.float64)
-            right_eye_2d = np.array(right_eye_2d, dtype=np.float64)
-            right_eye_3d = np.array(right_eye_3d, dtype=np.float64)
-
 
             # Solve PnP
             success, rotation_vector, translation_vector = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
@@ -281,14 +274,13 @@ while capture.isOpened():
         else:
             fps=0
             
-    #    if len(frames) > 10 * fps:
-    #        PERCLOS = frames.count(1) / len(frames)
-    #        print("PERCLOS: ", PERCLOS)
-#
-    #        if PERCLOS > 0.8: # 80% of the time eyes are closed
-    #            print("Drowsy")
-    #            cv2.putText(frame, "Drowsy", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
-    #        frames.pop(0)
+        if len(frames) > 10 * fps:
+            PERCLOS = frames.count(1) / len(frames)
+
+            if PERCLOS > 0.8: # 80% of the time eyes are closed
+                cv2.putText(frame, "Drowsy", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
+
+            frames.pop(0)
 
         cv2.putText(frame, f'FPS : {int(fps)}', (20,400), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 2)
         cv2.putText(frame, f'TIME : {round(time_elapsed, 2)}', (20,450), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 2)
