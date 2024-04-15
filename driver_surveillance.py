@@ -20,6 +20,10 @@ EAR_calibration_data_eyes_open = []
 EAR_calibration_data_eyes_closed = []
 threshold_EAR = 0
 
+face_pitch_calibration_data = []
+face_yaw_calibration_data = []
+face_angle_baseline = []
+
 capture = cv2.VideoCapture(0)
 
 while capture.isOpened():
@@ -203,16 +207,14 @@ while capture.isOpened():
                 pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 30
             else:
                 pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 45
-            yaw_left_eye = (left_eye_gaze_vector[0] / (left_eye_width / 2)) * 45
-
-            print(face_pitch, face_yaw)
-
-            if abs(np.mean([pitch_right_eye, pitch_left_eye]) + face_pitch) > 30 or abs(np.mean([yaw_right_eye, yaw_left_eye]) + face_yaw) > 30:
-                cv2.putText(frame, "DISTRACTED", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
-                
-
+            yaw_left_eye = (left_eye_gaze_vector[0] / (left_eye_width / 2)) * 45                
 
             # 4.4. - Draw the positions on the frame
+
+            nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rotation_vector, translation_vector, cam_matrix, dist_matrix)
+            p1 = (int(nose_2d[0]), int(nose_2d[1]))
+            p2 = (int(nose_2d[0] + face_yaw * 10), int(nose_2d[1] - face_pitch * 10))
+            cv2.line(frame, p1, p2, (255, 0, 0), 3)
 
             cv2.line(frame, (int(point_left_eye_iris_center[0]), int(point_left_eye_iris_center[1])), (int(left_eye_center[0]), int(left_eye_center[1])), (0, 255, 0), 2)
 
@@ -237,11 +239,15 @@ while capture.isOpened():
             if time_elapsed < 3:
                 cv2.putText(frame, "Calibrating ", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.putText(frame, "Eyes open and head forward", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                
                 EAR_calibration_data_eyes_open.append(EAR)
-                #left_eye_gaze_baseline_data.append(_left_eye)
-                #right_eye_gaze_baseline_data.append(angle_right_eye)
-                #face_angle_baseline_data.append([pitch, yaw, roll])
+                face_pitch_calibration_data.append(face_pitch)
+                face_yaw_calibration_data.append(face_yaw)
+
+                face_pitch_baseline = np.mean(face_pitch_calibration_data)
+                face_yaw_baseline = np.mean(face_yaw_calibration_data)
                 baseline_eyes_open = np.mean(EAR_calibration_data_eyes_open)
+
             elif time_elapsed > 3 and time_elapsed < 6:
                 cv2.putText(frame, "Calibrating EAR baseline", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.putText(frame, "Eyes closed", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -249,15 +255,18 @@ while capture.isOpened():
                 baseline_eyes_closed = np.mean(EAR_calibration_data_eyes_closed)
 
                 threshold_EAR = baseline_eyes_open - (baseline_eyes_open - baseline_eyes_closed) * 0.8
-                #left_eye_gaze_baseline = np.mean(left_eye_gaze_baseline_data)
-                #right_eye_gaze_baseline = np.mean(right_eye_gaze_baseline_data)
-                #face_angle_baseline = [np.mean(face_angle_baseline_data[i]) for i in range(3)]
 
             else:
                 if EAR < threshold_EAR: # eyes are 80% closed
                     frames.append(1)
                 else:
                     frames.append(0)
+
+                if abs(np.mean([pitch_right_eye, pitch_left_eye]) + (face_pitch - face_pitch_baseline)) > 30 or abs(np.mean([yaw_right_eye, yaw_left_eye]) + (face_yaw - face_yaw_baseline)) > 30:
+                    cv2.putText(frame, "DISTRACTED", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2)
+
+            #print("Face pitch: ", face_pitch - face_pitch_baseline)
+            print("Face yaw: ", face_yaw - face_yaw_baseline)
 
          #   speed reduction (comment out for full speed)
 
