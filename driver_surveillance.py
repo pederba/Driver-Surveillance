@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import time
+import playsound
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, 
@@ -161,7 +162,6 @@ while capture.isOpened():
             yaw_left_eye = (left_eye_gaze_vector[0] / (left_eye_width / 2)) * 45                
 
             # 4.4. - Draw the positions on the frame
-
             nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rotation_vector, translation_vector, cam_matrix, dist_matrix)
             p1 = (int(nose_2d[0]), int(nose_2d[1]))
             p2 = (int(nose_2d[0] + face_yaw * 10), int(nose_2d[1] - face_pitch * 10))
@@ -191,13 +191,16 @@ while capture.isOpened():
                 baseline_eyes_open = np.mean(EAR_calibration_data_eyes_open)
 
             elif time_elapsed > 3 and time_elapsed < 6:
+                
                 cv2.putText(frame, "Calibrating EAR baseline", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 cv2.putText(frame, "Eyes closed", (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 EAR_calibration_data_eyes_closed.append(EAR)
                 baseline_eyes_closed = np.mean(EAR_calibration_data_eyes_closed)
 
                 threshold_EAR = baseline_eyes_open - (baseline_eyes_open - baseline_eyes_closed) * 0.8
-
+            elif time_elapsed > 6 and time_elapsed < 8:
+                playsound.playsound('/home/pederba/Documents/Autonomous/Assignment1/beep-01a.mp3')
+                cv2.putText(frame, "Calibration complete", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             else:
                 if EAR < threshold_EAR: # eyes are 80% closed
                     frames.append(1)
