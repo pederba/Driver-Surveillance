@@ -149,13 +149,13 @@ while capture.isOpened():
             right_eye_gaze_vector = np.array([point_right_eye_iris_center[0] - right_eye_center[0], point_right_eye_iris_center[1] - right_eye_center[1]])
             left_eye_gaze_vector = np.array([point_left_eye_iris_center[0] - left_eye_center[0], point_left_eye_iris_center[1] - left_eye_center[1]])
 
-            if right_eye_height < 0:
+            if right_eye_height > 0:
                 pitch_right_eye = (right_eye_gaze_vector[1] / (right_eye_height/2)) * 30
             else:
                 pitch_right_eye = (right_eye_gaze_vector[1] / (right_eye_height/2)) * 45
             yaw_right_eye = (right_eye_gaze_vector[0] / (right_eye_width / 2)) * 45
 
-            if left_eye_gaze_vector[1] < 0:
+            if left_eye_gaze_vector[1] > 0:
                 pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 30
             else:
                 pitch_left_eye = (left_eye_gaze_vector[1] / (left_eye_height/2)) * 45
