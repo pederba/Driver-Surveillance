@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import time
-import playsound
+import pygame
+
+pygame.mixer.init()
+sound = pygame.mixer.Sound('beep-01a.mp3')
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, 
@@ -199,7 +202,7 @@ while capture.isOpened():
 
                 threshold_EAR = baseline_eyes_open - (baseline_eyes_open - baseline_eyes_closed) * 0.8
             elif time_elapsed > 6 and time_elapsed < 8:
-                playsound.playsound('/home/pederba/Documents/Autonomous/Assignment1/beep-01a.mp3')
+                sound.play()
                 cv2.putText(frame, "Calibration complete", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             else:
                 if EAR < threshold_EAR: # eyes are 80% closed
